@@ -6,6 +6,7 @@ const LikesController = () => import('#controllers/likes_controller')
 const CommentsController = () => import('#controllers/comments_controller')
 const SharesController = () => import('#controllers/shares_controller')
 const ReportsController = () => import('#controllers/reports_controller')
+const FollowsController = () => import('#controllers/follows_controller')
 
 router.get('/', async () => {
   return {
@@ -20,6 +21,8 @@ router
         router.get('/', [UsersController, 'index'])
         router.get('/:id', [UsersController, 'show'])
         router.get('/:userId/posts', [PostsController, 'getUserPosts'])
+        router.get('/:userId/followers', [FollowsController, 'followers'])
+        router.get('/:userId/following', [FollowsController, 'following'])
         router.post('/', [UsersController, 'store'])
         router.put('/:id', [UsersController, 'update'])
         router.delete('/:id', [UsersController, 'destroy'])

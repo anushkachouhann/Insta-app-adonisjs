@@ -1,5 +1,5 @@
 import type { HttpContext } from '@adonisjs/core/http'
-import { getLocale, t } from '#utils/i18n'
+import { getLocale, t } from '#config/i18n'
 import { ApiException } from '#exceptions/api_exception'
 
 type SuccessPayload<T> = {
