@@ -1,59 +1,60 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { UserService } from '#services/user_service'
+import { handleError, created, ok, noContent } from '#utils/response'
+import { parseId } from '#utils/params'
+import { createUserValidator } from '#validators/users/create_user_validator'
+import { updateUserValidator } from '#validators/users/update_user_validator'
 
 export default class UsersController {
-    private userService = new UserService();
+  private userService = new UserService()
 
-    public async index({ response }: HttpContext){
-        try {
-            const users = await this.userService.getAllUsers();
-            return response.json(users);
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async index(ctx: HttpContext) {
+    try {
+      const users = await this.userService.getAllUsers()
+      return ok(ctx, { data: users })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async show({ params, response }: HttpContext){
-        try {
-            const user = await this.userService.getUserById(params.id);
-            return response.json(user);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async show(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const user = await this.userService.getUserById(id)
+      return ok(ctx, { data: user })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async store({ request, response }: HttpContext){
-        try {
-            const body = request.only([
-                'name', 'email', 'username', 'password', 
-                'bio', 'gender', 'profilePicture'
-            ]);
-            const newUser = await this.userService.createUser(body);
-            return response.status(201).json(newUser);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async store(ctx: HttpContext) {
+    try {
+      const payload = await ctx.request.validateUsing(createUserValidator)
+      const newUser = await this.userService.createUser(payload)
+      return created(ctx, { messageKey: 'CREATED', data: newUser })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async update({ params, request, response }: HttpContext){
-        try {
-            const body = request.only([
-                'name', 'email', 'username', 'password',
-                'bio', 'gender', 'profilePicture'
-            ]);
-            const updatedUser = await this.userService.updateUser(params.id, body);
-            return response.json(updatedUser);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async update(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const payload = await ctx.request.validateUsing(updateUserValidator)
+      const updatedUser = await this.userService.updateUser(id, payload)
+      return ok(ctx, { messageKey: 'UPDATED', data: updatedUser })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async destroy({ params, response }: HttpContext){
-        try {
-            const result = await this.userService.deleteUser(params.id);
-            return response.json(result);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async destroy(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      await this.userService.deleteUser(id)
+      return noContent(ctx, { messageKey: 'DELETED' })
+    } catch (error) {
+      return handleError(ctx, error)
     }
-}   
+  }
+}

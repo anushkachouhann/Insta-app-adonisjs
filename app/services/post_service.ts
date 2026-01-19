@@ -1,45 +1,43 @@
-import Post from "#models/post";
-import User from "#models/user";
+import { ApiException } from '#exceptions/api_exception'
+import Post from '#models/post'
+import User from '#models/user'
 
 export class PostService {
-  public async getAllPosts(){
-    return await Post.query().preload('user').orderBy('created_at', 'desc');
+  public async getAllPosts() {
+    return await Post.query().preload('user').orderBy('created_at', 'desc')
   }
 
-  public async getPostById(id: number){
+  public async getPostById(id: number) {
     const post = await Post.query()
       .where('id', id)
       .preload('user')
       .preload('likes', (query) => {
-        query.preload('user');
+        query.preload('user')
       })
       .preload('comments', (query) => {
-        query.preload('user').preload('replies');
+        query.preload('user').preload('replies')
       })
-      .first();
-    
+      .first()
+
     if (!post) {
-      throw new Error('Post not found');
+      throw new ApiException('POST_NOT_FOUND', 404, 'E_POST_NOT_FOUND')
     }
-    return post;
+    return post
   }
 
-  public async getPostsByUserId(userId: number){
-    return await Post.query()
-      .where('user_id', userId)
-      .preload('user')
-      .orderBy('created_at', 'desc');
+  public async getPostsByUserId(userId: number) {
+    return await Post.query().where('user_id', userId).preload('user').orderBy('created_at', 'desc')
   }
 
   public async createPost(postData: {
-    userId: number;
-    caption?: string | null;
-    mediaUrl: string;
-    postType: 'post' | 'reel';
-  }){
-    const user = await User.find(postData.userId);
+    userId: number
+    caption?: string | null
+    mediaUrl: string
+    postType: 'post' | 'reel'
+  }) {
+    const user = await User.find(postData.userId)
     if (!user) {
-      throw new Error('User not found');
+      throw new ApiException('USER_NOT_FOUND', 404, 'E_USER_NOT_FOUND')
     }
 
     return await Post.create({
@@ -50,61 +48,64 @@ export class PostService {
       likesCount: 0,
       commentsCount: 0,
       sharesCount: 0,
-    });
+    })
   }
 
-  public async updatePost(id: number, postData: {
-    caption?: string | null;
-    mediaUrl?: string;
-  }){
-    const post = await Post.find(id);
+  public async updatePost(
+    id: number,
+    postData: {
+      caption?: string | null
+      mediaUrl?: string
+    }
+  ) {
+    const post = await Post.find(id)
     if (!post) {
-      throw new Error('Post not found');
+      throw new ApiException('POST_NOT_FOUND', 404, 'E_POST_NOT_FOUND')
     }
 
-    post.merge(postData);
-    await post.save();
-    return post;
+    post.merge(postData)
+    await post.save()
+    return post
   }
 
-  public async deletePost(id: number){
-    const post = await Post.find(id);
+  public async deletePost(id: number) {
+    const post = await Post.find(id)
     if (!post) {
-      throw new Error('Post not found');
+      throw new ApiException('POST_NOT_FOUND', 404, 'E_POST_NOT_FOUND')
     }
-    await post.delete();
-    return { message: 'Post deleted successfully' };
-  } 
+    await post.delete()
+    return { message: 'Post deleted successfully' }
+  }
 
-  public async incrementLikesCount(postId: number){
-    const post = await Post.find(postId);
+  public async incrementLikesCount(postId: number) {
+    const post = await Post.find(postId)
     if (post) {
-      post.likesCount += 1;
-      await post.save();
+      post.likesCount += 1
+      await post.save()
     }
   }
 
-  public async decrementLikesCount(postId: number){
-    const post = await Post.find(postId);
+  public async decrementLikesCount(postId: number) {
+    const post = await Post.find(postId)
     if (post) {
-      post.likesCount = Math.max(0, post.likesCount - 1);
-      await post.save();
+      post.likesCount = Math.max(0, post.likesCount - 1)
+      await post.save()
     }
   }
 
-  public async incrementCommentsCount(postId: number){
-    const post = await Post.find(postId);
+  public async incrementCommentsCount(postId: number) {
+    const post = await Post.find(postId)
     if (post) {
-      post.commentsCount += 1;
-      await post.save();
+      post.commentsCount += 1
+      await post.save()
     }
   }
 
-  public async incrementSharesCount(postId: number){
-    const post = await Post.find(postId);
+  public async incrementSharesCount(postId: number) {
+    const post = await Post.find(postId)
     if (post) {
-      post.sharesCount += 1;
-      await post.save();
+      post.sharesCount += 1
+      await post.save()
     }
   }
 }

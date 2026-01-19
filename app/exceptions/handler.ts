@@ -1,5 +1,6 @@
 import app from '@adonisjs/core/services/app'
 import { HttpContext, ExceptionHandler } from '@adonisjs/core/http'
+import { handleError } from '#utils/response'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -13,7 +14,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    * response to the client
    */
   async handle(error: unknown, ctx: HttpContext) {
-    return super.handle(error, ctx)
+    // Always return JSON responses for APIs
+    return handleError(ctx, error)
   }
 
   /**

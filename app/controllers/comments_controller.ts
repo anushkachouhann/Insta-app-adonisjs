@@ -1,53 +1,61 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { CommentService } from '#services/comment_service'
+import { handleError, created, ok, noContent } from '#utils/response'
+import { parseId } from '#utils/params'
+import { createCommentValidator } from '#validators/comments/create_comment_validator'
+import { updateCommentValidator } from '#validators/comments/update_comment_validator'
 
 export default class CommentsController {
-    private commentService = new CommentService();
+  private commentService = new CommentService()
 
-    public async create({ request, response }: HttpContext){
-        try {
-            const body = request.only(['userId', 'postId', 'content', 'parentId']);
-            const comment = await this.commentService.createComment(body);
-            return response.status(201).json(comment);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async create(ctx: HttpContext) {
+    try {
+      const payload = await ctx.request.validateUsing(createCommentValidator)
+      const comment = await this.commentService.createComment(payload)
+      return created(ctx, { messageKey: 'CREATED', data: comment })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async getPostComments({ params, response }: HttpContext){
-        try {
-            const comments = await this.commentService.getCommentsByPostId(params.postId);
-            return response.json(comments);
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async getPostComments(ctx: HttpContext) {
+    try {
+      const postId = parseId(ctx.params.postId, 'postId')
+      const comments = await this.commentService.getCommentsByPostId(postId)
+      return ok(ctx, { data: comments })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async show({ params, response }: HttpContext){
-        try {
-            const comment = await this.commentService.getCommentById(params.id);
-            return response.json(comment);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async show(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const comment = await this.commentService.getCommentById(id)
+      return ok(ctx, { data: comment })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async update({ params, request, response }: HttpContext){
-        try {
-            const { content } = request.only(['content']);
-            const updatedComment = await this.commentService.updateComment(params.id, content);
-            return response.json(updatedComment);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async update(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const payload = await ctx.request.validateUsing(updateCommentValidator)
+      const updatedComment = await this.commentService.updateComment(id, payload.content)
+      return ok(ctx, { messageKey: 'UPDATED', data: updatedComment })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async destroy({ params, response }: HttpContext){
-        try {
-            const result = await this.commentService.deleteComment(params.id);
-            return response.json(result);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async destroy(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      await this.commentService.deleteComment(id)
+      return noContent(ctx, { messageKey: 'DELETED' })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 }
