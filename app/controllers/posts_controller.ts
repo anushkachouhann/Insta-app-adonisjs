@@ -1,62 +1,70 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { PostService } from '#services/post_service'
+import { handleError, created, ok, noContent } from '#utils/response'
+import { parseId } from '#utils/params'
+import { createPostValidator } from '#validators/posts/create_post_validator'
+import { updatePostValidator } from '#validators/posts/update_post_validator'
 
 export default class PostsController {
-    private postService = new PostService();
+  private postService = new PostService()
 
-    public async index({ response }: HttpContext){
-        try {
-            const posts = await this.postService.getAllPosts();
-            return response.json(posts);
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async index(ctx: HttpContext) {
+    try {
+      const posts = await this.postService.getAllPosts()
+      return ok(ctx, { data: posts })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async show({ params, response }: HttpContext){
-        try {
-            const post = await this.postService.getPostById(params.id);
-            return response.json(post);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async show(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const post = await this.postService.getPostById(id)
+      return ok(ctx, { data: post })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async store({ request, response }: HttpContext){
-        try {
-            const body = request.only(['userId', 'caption', 'mediaUrl', 'postType']);
-            const newPost = await this.postService.createPost(body);
-            return response.status(201).json(newPost);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async store(ctx: HttpContext) {
+    try {
+      const payload = await ctx.request.validateUsing(createPostValidator)
+      const newPost = await this.postService.createPost(payload)
+      return created(ctx, { messageKey: 'CREATED', data: newPost })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async update({ params, request, response }: HttpContext){
-        try {
-            const body = request.only(['caption', 'mediaUrl']);
-            const updatedPost = await this.postService.updatePost(params.id, body);
-            return response.json(updatedPost);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async update(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      const payload = await ctx.request.validateUsing(updatePostValidator)
+      const updatedPost = await this.postService.updatePost(id, payload)
+      return ok(ctx, { messageKey: 'UPDATED', data: updatedPost })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async destroy({ params, response }: HttpContext){
-        try {
-            const result = await this.postService.deletePost(params.id);
-            return response.json(result);
-        } catch (error: any) {
-            return response.status(404).json({ error: error.message });
-        }
+  public async destroy(ctx: HttpContext) {
+    try {
+      const id = parseId(ctx.params.id)
+      await this.postService.deletePost(id)
+      return noContent(ctx, { messageKey: 'DELETED' })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async getUserPosts({ params, response }: HttpContext){
-        try {
-            const posts = await this.postService.getPostsByUserId(params.userId);
-            return response.json(posts);
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async getUserPosts(ctx: HttpContext) {
+    try {
+      const userId = parseId(ctx.params.userId, 'userId')
+      const posts = await this.postService.getPostsByUserId(userId)
+      return ok(ctx, { data: posts })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 }

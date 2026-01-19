@@ -1,12 +1,15 @@
 import { DateTime } from 'luxon'
 import { BaseModel, column, hasMany } from '@adonisjs/lucid/orm'
 import type { HasMany } from '@adonisjs/lucid/types/relations'
+import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import Post from './post.js'
 import Like from './like.js'
 import Comment from './comment.js'
 import Share from './share.js'
 
 export default class User extends BaseModel {
+  public static accessTokens = DbAccessTokensProvider.forModel(User)
+
   @column({ isPrimary: true })
   declare id: number
 

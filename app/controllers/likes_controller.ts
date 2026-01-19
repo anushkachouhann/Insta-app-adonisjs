@@ -1,50 +1,57 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { LikeService } from '#services/like_service'
+import { handleError, created, ok } from '#utils/response'
+import { parseId } from '#utils/params'
+import { likeToggleValidator } from '#validators/likes/like_toggle_validator'
 
 export default class LikesController {
   private likeService = new LikeService()
 
-  public async like({ request, response }: HttpContext) {
+  public async like(ctx: HttpContext) {
     try {
-      const { userId, postId } = request.only(['userId', 'postId'])
+      const payload = await ctx.request.validateUsing(likeToggleValidator)
+      const result = await this.likeService.likePost(payload.userId, payload.postId)
 
-      const result = await this.likeService.likePost(userId, postId)
-
-      return response.status(201).json({
-        likes_count: result.likesCount,
-        like: result.like,  
+      return created(ctx, {
+        messageKey: 'CREATED',
+        data: {
+          likes_count: result.likesCount,
+          like: result.like,
+        },
       })
-    } catch (error: any) {
-      return response.status(400).json({ error: error.message })
+    } catch (error) {
+      return handleError(ctx, error)
     }
   }
 
-  public async unlike({ request, response }: HttpContext) {
+  public async unlike(ctx: HttpContext) {
     try {
-      const { userId, postId } = request.only(['userId', 'postId'])
-      const result = await this.likeService.unlikePost(userId, postId)
-      return response.json(result)
-    } catch (error: any) {
-      return response.status(400).json({ error: error.message })
+      const payload = await ctx.request.validateUsing(likeToggleValidator)
+      const result = await this.likeService.unlikePost(payload.userId, payload.postId)
+      return ok(ctx, { messageKey: 'DELETED', data: result })
+    } catch (error) {
+      return handleError(ctx, error)
     }
   }
 
-  public async getPostLikes({ params, response }: HttpContext) {
+  public async getPostLikes(ctx: HttpContext) {
     try {
-      const likes = await this.likeService.getLikesByPostId(params.postId)
-      return response.json(likes)
-    } catch (error: any) {
-      return response.status(500).json({ error: error.message })
+      const postId = parseId(ctx.params.postId, 'postId')
+      const likes = await this.likeService.getLikesByPostId(postId)
+      return ok(ctx, { data: likes })
+    } catch (error) {
+      return handleError(ctx, error)
     }
   }
 
-  public async checkLike({ params, request, response }: HttpContext) {
+  public async checkLike(ctx: HttpContext) {
     try {
-      const { userId } = request.only(['userId'])
-      const isLiked = await this.likeService.checkIfLiked(userId, params.postId)
-      return response.json({ isLiked })
-    } catch (error: any) {
-      return response.status(500).json({ error: error.message })
+      const userId = parseId(ctx.request.input('userId'), 'userId')
+      const postId = parseId(ctx.params.postId, 'postId')
+      const isLiked = await this.likeService.checkIfLiked(userId, postId)
+      return ok(ctx, { data: { isLiked } })
+    } catch (error) {
+      return handleError(ctx, error)
     }
   }
 }

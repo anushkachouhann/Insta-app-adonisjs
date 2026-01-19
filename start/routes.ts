@@ -1,9 +1,12 @@
 import router from '@adonisjs/core/services/router'
-import UsersController from '#controllers/users_controller'
-import PostsController from '#controllers/posts_controller'
-import LikesController from '#controllers/likes_controller'
-import CommentsController from '#controllers/comments_controller'
-import SharesController from '#controllers/shares_controller'
+
+const UsersController = () => import('#controllers/users_controller')
+const PostsController = () => import('#controllers/posts_controller')
+const LikesController = () => import('#controllers/likes_controller')
+const CommentsController = () => import('#controllers/comments_controller')
+const SharesController = () => import('#controllers/shares_controller')
+const ReportsController = () => import('#controllers/reports_controller')
+const FollowsController = () => import('#controllers/follows_controller')
 
 router.get('/', async () => {
   return {
@@ -11,42 +14,62 @@ router.get('/', async () => {
   }
 })
 
-router.group(() => {
+router
+  .group(() => {
+    router
+      .group(() => {
+        router.get('/', [UsersController, 'index'])
+        router.get('/:id', [UsersController, 'show'])
+        router.get('/:userId/posts', [PostsController, 'getUserPosts'])
+        router.get('/:userId/followers', [FollowsController, 'followers'])
+        router.get('/:userId/following', [FollowsController, 'following'])
+        router.post('/', [UsersController, 'store'])
+        router.put('/:id', [UsersController, 'update'])
+        router.delete('/:id', [UsersController, 'destroy'])
+      })
+      .prefix('/users')
 
-  // Users routes
-  router.get('/users', [UsersController, 'index']);
-  router.get('/users/:id', [UsersController, 'show']);
-  router.post('/users', [UsersController, 'store']);
-  router.put('/users/:id', [UsersController, 'update']);
-  router.delete('/users/:id', [UsersController, 'destroy']);
+    router
+      .group(() => {
+        router.get('/', [PostsController, 'index'])
+        router.get('/:id', [PostsController, 'show'])
+        router.post('/', [PostsController, 'store'])
+        router.put('/:id', [PostsController, 'update'])
+        router.delete('/:id', [PostsController, 'destroy'])
+        router.get('/:postId/likes', [LikesController, 'getPostLikes'])
+        router.get('/:postId/comments', [CommentsController, 'getPostComments'])
+        router.get('/:postId/shares', [SharesController, 'getPostShares'])
+        router.get('/:postId/shares/count', [SharesController, 'getShareCount'])
+      })
+      .prefix('/posts')
 
-// Posts routes 
-  router.get('/posts', [PostsController, 'index']);
-  router.get('/posts/:id', [PostsController, 'show']);
-  router.post('/posts', [PostsController, 'store']);
-  router.put('/posts/:id', [PostsController, 'update']);
-  router.delete('/posts/:id', [PostsController, 'destroy']);
-  router.get('/users/:userId/posts', [PostsController, 'getUserPosts']);
-  
-// Likes routes 
-  router.post('/likes', [LikesController, 'like']);
-  router.delete('/likes', [LikesController, 'unlike']);
-  router.get('/posts/:postId/likes', [LikesController, 'getPostLikes']);
-  // router.get('/posts/:postId/likes/check', [LikesController, 'checkLike']);
+    router
+      .group(() => {
+        router.post('/', [LikesController, 'like'])
+        router.delete('/', [LikesController, 'unlike'])
+      })
+      .prefix('/likes')
 
+    router
+      .group(() => {
+        router.post('/', [CommentsController, 'create'])
+        router.get('/:id', [CommentsController, 'show'])
+        router.put('/:id', [CommentsController, 'update'])
+        router.delete('/:id', [CommentsController, 'destroy'])
+      })
+      .prefix('/comments')
 
-// Comments routes 
-  router.post('/comments', [CommentsController, 'create']);
-  router.get('/posts/:postId/comments', [CommentsController, 'getPostComments']);
-  router.get('/comments/:id', [CommentsController, 'show']);
-  router.put('/comments/:id', [CommentsController, 'update']);
-  router.delete('/comments/:id', [CommentsController, 'destroy']);
+    router
+      .group(() => {
+        router.post('/', [SharesController, 'share'])
+      })
+      .prefix('/shares')
 
-// Shares routes 
-  router.post('/shares', [SharesController, 'share']);
-  router.get('/posts/:postId/shares', [SharesController, 'getPostShares']);
-  router.get('/posts/:postId/shares/count', [SharesController, 'getShareCount']);
-
-}).prefix('/insta-api');
-
-
+    router
+      .group(() => {
+        router.get('/likes', [ReportsController, 'likes'])
+        router.get('/comments', [ReportsController, 'comments'])
+      })
+      .prefix('/reports')
+  })
+  .prefix('/insta-api')

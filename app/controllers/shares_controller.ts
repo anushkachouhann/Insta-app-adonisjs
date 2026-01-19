@@ -1,34 +1,39 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import { ShareService } from '#services/share_service'
+import { handleError, created, ok } from '#utils/response'
+import { parseId } from '#utils/params'
+import { createShareValidator } from '#validators/shares/create_share_validator'
 
 export default class SharesController {
-    private shareService = new ShareService();
+  private shareService = new ShareService()
 
-    public async share({ request, response }: HttpContext){
-        try {
-            const { userId, postId } = request.only(['userId', 'postId']);
-            const share = await this.shareService.sharePost(userId, postId);
-            return response.status(201).json(share);
-        } catch (error: any) {
-            return response.status(400).json({ error: error.message });
-        }
+  public async share(ctx: HttpContext) {
+    try {
+      const payload = await ctx.request.validateUsing(createShareValidator)
+      const share = await this.shareService.sharePost(payload.userId, payload.postId)
+      return created(ctx, { messageKey: 'CREATED', data: share })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async getPostShares({ params, response }: HttpContext){
-        try {
-            const shares = await this.shareService.getSharesByPostId(params.postId);
-            return response.json(shares);
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async getPostShares(ctx: HttpContext) {
+    try {
+      const postId = parseId(ctx.params.postId, 'postId')
+      const shares = await this.shareService.getSharesByPostId(postId)
+      return ok(ctx, { data: shares })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 
-    public async getShareCount({ params, response }: HttpContext){
-        try {
-            const count = await this.shareService.getShareCount(params.postId);
-            return response.json({ count });
-        } catch (error: any) {
-            return response.status(500).json({ error: error.message });
-        }
+  public async getShareCount(ctx: HttpContext) {
+    try {
+      const postId = parseId(ctx.params.postId, 'postId')
+      const count = await this.shareService.getShareCount(postId)
+      return ok(ctx, { data: { count } })
+    } catch (error) {
+      return handleError(ctx, error)
     }
+  }
 }
